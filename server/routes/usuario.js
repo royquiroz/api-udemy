@@ -15,13 +15,21 @@ app.get('/usuario', function(req, res) {
     let limite = req.query.limite;
     limite = Number(limite);
 
-    Usuario.find()
+    Usuario.find({ estado: true }, 'nombre email estado role google img')
         .skip(desde)
         .limit(limite)
         .exec((err, usuarios) => {
 
-            res.json(usuarios);
+        Usuario.count({ estado: true }, (err, cont) =>{
+
+            res.json({
+                ok: true,
+                usuarios,
+                total: cont
+            });
+
         })
+    })
 
 });
 
@@ -49,6 +57,7 @@ app.post('/usuario', function(req, res) {
         usuarioDB.password = undefined;
 
         res.json({
+            ok: true,
             usuario: usuarioDB
         });
 
@@ -77,6 +86,7 @@ app.put('/usuario/:id', function(req, res) {
         usuarioDB.password = undefined;
 
         res.json({
+            ok: true,
             usuario: usuarioDB
         });
 
@@ -84,8 +94,67 @@ app.put('/usuario/:id', function(req, res) {
 
 });
 
-app.delete('/usuario', function(req, res) {
-    res.json('delete Usuario');
+app.delete('/usuario/:id', function(req, res) {
+
+    let id = req.params.id;
+    let estado = { estado: false }
+    let options = {
+        new: true,
+        runValidations: true
+    }
+
+    Usuario.findByIdAndUpdate(id, estado, options, (err, usuarioDelete) => {
+
+        if (err) {
+            return res.status(400).json({
+                ok: false,
+                err
+            })
+        }
+
+        if(!usuarioDelete.estado){
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: `Usuario con el id ${id} ya ha sido eliminado`
+                }
+            })
+        }
+
+        res.json({
+            ok: true,
+            usuarioDelete
+        });
+
+    })
+
+    /*
+    Usuario.findByIdAndRemove(id, (err, usuario) => {
+
+        if(err){
+            return res.status(400).json({
+                ok: false,
+                err
+            })
+        }
+
+        if(!usuario){
+            return res.status(400).json({
+                ok: false,
+                err: {
+                    message: `Usuario con el id ${id} no encontrado dentro de la base de datos`
+                }
+            })
+        }
+
+        res.json({
+            ok: true,
+            usuario
+        });
+
+    })
+    */
+
 });
 
 module.exports = app;
