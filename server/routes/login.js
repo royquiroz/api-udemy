@@ -1,12 +1,12 @@
-const express = require("express");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 
-const Usuario = require("../models/usuario");
+const Usuario = require('../models/usuario');
 
-app.post("/login", (req, res) => {
+app.post('/login', (req, res) => {
   let body = req.body;
 
   Usuario.findOne({ email: body.email }, (err, usuarioDB) => {
@@ -21,7 +21,7 @@ app.post("/login", (req, res) => {
       return res.status(400).json({
         ok: false,
         err: {
-          message: "(Usuario) o contraseña invalidos"
+          message: '(Usuario) o contraseña invalidos'
         }
       });
     }
@@ -30,7 +30,7 @@ app.post("/login", (req, res) => {
       return res.status(400).json({
         ok: false,
         err: {
-          message: "Usuario o (contraseña) invalidos"
+          message: 'Usuario o (contraseña) invalidos'
         }
       });
     }
@@ -39,10 +39,10 @@ app.post("/login", (req, res) => {
 
     let token = jwt.sign(
       {
-        data: usuarioDB
+        usuario: usuarioDB
       },
-      "secret",
-      { expiresIn: 60 * 60 * 24 * 30 }
+      process.env.SEED,
+      { expiresIn: process.env.CADUCIDAD_TOKEN }
     );
 
     res.json({

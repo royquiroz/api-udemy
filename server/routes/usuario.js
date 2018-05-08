@@ -4,131 +4,124 @@ const _ = require('underscore');
 
 const app = express();
 
-const Usuario = require('../models/usuario')
+const Usuario = require('../models/usuario');
+const { verificaToken } = require('../middlewares/autenticacion');
 
+//Method GET para insertar usuarios
+app.get('/usuario', verificaToken, (req, res) => {
+  return res.json({
+    usuario: req.usuario,
+    nombre: req.usuario.nombre,
+    email: req.usuario.email
+  });
 
-app.get('/usuario', function(req, res) {
+  let desde = req.query.desde || 0;
+  desde = Number(desde);
 
-    let desde = req.query.desde || 0;
-    desde = Number(desde);
+  let limite = req.query.limite;
+  limite = Number(limite);
 
-    let limite = req.query.limite;
-    limite = Number(limite);
-
-    Usuario.find({ estado: true }, 'nombre email estado role google img')
-        .skip(desde)
-        .limit(limite)
-        .exec((err, usuarios) => {
-
-        Usuario.count({ estado: true }, (err, cont) =>{
-
-            res.json({
-                ok: true,
-                usuarios,
-                total: cont
-            });
-
-        })
-    })
-
+  Usuario.find({ estado: true }, 'nombre email estado role google img')
+    .skip(desde)
+    .limit(limite)
+    .exec((err, usuarios) => {
+      Usuario.count({ estado: true }, (err, cont) => {
+        res.json({
+          ok: true,
+          usuarios,
+          total: cont
+        });
+      });
+    });
 });
 
 //Method POST para la carga de usuarios
-app.post('/usuario', function(req, res) {
+app.post('/usuario', (req, res) => {
+  let body = req.body;
 
-    let body = req.body;
+  let usuario = new Usuario({
+    nombre: body.nombre,
+    email: body.email,
+    password: bcrypt.hashSync(body.password, 10),
+    role: body.role
+  });
 
-    let usuario = new Usuario({
-        nombre: body.nombre,
-        email: body.email,
-        password: bcrypt.hashSync(body.password, 10),
-        role: body.role
-    })
-
-    usuario.save((err, usuarioDB) => {
-
-        if(err){
-            return res.status(400).json({
-                ok: false,
-                err
-            })
-        }
-
-        usuarioDB.password = undefined;
-
-        res.json({
-            ok: true,
-            usuario: usuarioDB
-        });
-
-    })
-
-});
-
-app.put('/usuario/:id', function(req, res) {
-
-    let id = req.params.id;
-    let body = _.pick(req.body, ['nombre', 'email', 'role', 'img', 'estado']);
-    let options = {
-        new: true,
-        runValidations: true
+  usuario.save((err, usuarioDB) => {
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        err
+      });
     }
 
-    Usuario.findByIdAndUpdate( id, body, options, (err, usuarioDB) => {
-        
-        if(err){
-            return res.status(400).json({
-                ok: false,
-                err
-            })
-        }
+    usuarioDB.password = undefined;
 
-        usuarioDB.password = undefined;
-
-        res.json({
-            ok: true,
-            usuario: usuarioDB
-        });
-
-    })
-
+    res.json({
+      ok: true,
+      usuario: usuarioDB
+    });
+  });
 });
 
-app.delete('/usuario/:id', function(req, res) {
+//Method PUT para editar usuarios
+app.put('/usuario/:id', (req, res) => {
+  let id = req.params.id;
+  let body = _.pick(req.body, ['nombre', 'email', 'role', 'img', 'estado']);
+  let options = {
+    new: true,
+    runValidations: true
+  };
 
-    let id = req.params.id;
-    let estado = { estado: false }
-    let options = {
-        new: true,
-        runValidations: true
+  Usuario.findByIdAndUpdate(id, body, options, (err, usuarioDB) => {
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        err
+      });
     }
 
-    Usuario.findByIdAndUpdate(id, estado, options, (err, usuarioDelete) => {
+    usuarioDB.password = undefined;
 
-        if (err) {
-            return res.status(400).json({
-                ok: false,
-                err
-            })
+    res.json({
+      ok: true,
+      usuario: usuarioDB
+    });
+  });
+});
+
+//Method DELETE para eliminar usuarios
+app.delete('/usuario/:id', (req, res) => {
+  let id = req.params.id;
+  let estado = { estado: false };
+  let options = {
+    new: true,
+    runValidations: true
+  };
+
+  Usuario.findByIdAndUpdate(id, estado, options, (err, usuarioDelete) => {
+    if (err) {
+      return res.status(400).json({
+        ok: false,
+        err
+      });
+    }
+
+    if (!usuarioDelete.estado) {
+      return res.status(400).json({
+        ok: false,
+        err: {
+          message: `Usuario con el id ${id} ya ha sido eliminado`
         }
+      });
+    }
 
-        if(!usuarioDelete.estado){
-            return res.status(400).json({
-                ok: false,
-                err: {
-                    message: `Usuario con el id ${id} ya ha sido eliminado`
-                }
-            })
-        }
+    res.json({
+      ok: true,
+      usuarioDelete
+    });
+  });
 
-        res.json({
-            ok: true,
-            usuarioDelete
-        });
-
-    })
-
-    /*
+  /*
     Usuario.findByIdAndRemove(id, (err, usuario) => {
 
         if(err){
@@ -154,7 +147,6 @@ app.delete('/usuario/:id', function(req, res) {
 
     })
     */
-
 });
 
 module.exports = app;
