@@ -3,9 +3,6 @@ const jwt = require('jsonwebtoken');
 let verificaToken = (req, res, next) => {
   let token = req.get('authorization');
 
-  //console.log(process.env.SEED);
-  //console.log(process.env.CADUCIDAD_TOKEN);
-
   jwt.verify(token, process.env.SEED, (err, decoded) => {
     if (err) {
       return res.status(401).json({
@@ -19,6 +16,22 @@ let verificaToken = (req, res, next) => {
   });
 };
 
+let verificaAdmin_Role = (req, res, next) => {
+  let usuario = req.usuario;
+
+  if (usuario.role === 'USER_ROLE') {
+    return res.json({
+      ok: false,
+      err: {
+        message: 'El usuario no es administrador'
+      }
+    });
+  }
+
+  next();
+};
+
 module.exports = {
-  verificaToken
+  verificaToken,
+  verificaAdmin_Role
 };

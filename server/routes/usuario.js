@@ -5,15 +5,20 @@ const _ = require('underscore');
 const app = express();
 
 const Usuario = require('../models/usuario');
-const { verificaToken } = require('../middlewares/autenticacion');
+const {
+  verificaToken,
+  verificaAdmin_Role
+} = require('../middlewares/autenticacion');
 
 //Method GET para insertar usuarios
 app.get('/usuario', verificaToken, (req, res) => {
+  /*
   return res.json({
     usuario: req.usuario,
     nombre: req.usuario.nombre,
     email: req.usuario.email
   });
+  */
 
   let desde = req.query.desde || 0;
   desde = Number(desde);
@@ -36,7 +41,7 @@ app.get('/usuario', verificaToken, (req, res) => {
 });
 
 //Method POST para la carga de usuarios
-app.post('/usuario', (req, res) => {
+app.post('/usuario', [verificaToken, verificaAdmin_Role], (req, res) => {
   let body = req.body;
 
   let usuario = new Usuario({
@@ -64,7 +69,7 @@ app.post('/usuario', (req, res) => {
 });
 
 //Method PUT para editar usuarios
-app.put('/usuario/:id', (req, res) => {
+app.put('/usuario/:id', [verificaToken, verificaAdmin_Role], (req, res) => {
   let id = req.params.id;
   let body = _.pick(req.body, ['nombre', 'email', 'role', 'img', 'estado']);
   let options = {
@@ -90,7 +95,7 @@ app.put('/usuario/:id', (req, res) => {
 });
 
 //Method DELETE para eliminar usuarios
-app.delete('/usuario/:id', (req, res) => {
+app.delete('/usuario/:id', [verificaToken, verificaAdmin_Role], (req, res) => {
   let id = req.params.id;
   let estado = { estado: false };
   let options = {
